@@ -23,21 +23,15 @@ for i in range(1, rows):
     for j in range(cols):
         excess_return_matrix[i,j] = (price_matrix[i,j] / price_matrix[i-1,j]) - 1
 
-# Printing the excess return matrix
-print("Excess Return Matrix")
-print(excess_return_matrix)
-
 # Converting the excess returns matrix to a pandas dataframe and setting title
 excess_return_df = pd.DataFrame(excess_return_matrix,
                                 columns = ['AAPL','MSFT','AMZN','NVDA','GOOGL','TSLA','META','BRK.B','UNH'])
 
+# Printing the Excess Returns Dataframe
 title = "Weekly Excess Returns for Given Stocks"
 excess_return_df.title = title
-
-# Printing the dataframe
 print(f"\n{title}\n")
 print(excess_return_df)
-
 
 # Initializing the de-meaned matrix
 Y = np.zeros((26,9))
@@ -48,15 +42,20 @@ for j in range(cols):
     for i in range(1, rows):
         Y[i,j] = excess_return_matrix[i,j] - mean
 
+# Deleting the first row since they do not have weekly returns
 Y = np.delete(Y, 0, 0)
 
-V =  np.dot(Y, Y.T)/25
+# Compute sample Covariance Matrix
+V = np.dot(Y, Y.T)/25
 
-de_mean_df = pd.DataFrame(Y)
+# Printing the De-Meaned Matrix in a Dataframe
+de_mean_df = pd.DataFrame(Y,
+                          columns = ['AAPL','MSFT','AMZN','NVDA','GOOGL','TSLA','META','BRK.B','UNH'])
 title = "De-Meaned Matrix of Excess Returns"
 print(f"\n{title}\n")
 print(de_mean_df)
 
+# Printing the Covariance Matrix V
 print("\nCovariance Matrix V")
 print(V)
 
