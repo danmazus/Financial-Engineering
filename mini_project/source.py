@@ -63,6 +63,12 @@ denom = np.dot(np.dot(e.T, V_inv), e)
 # Calculate the holdings vector, h_C
 h_C = numer/denom
 
+"""COMPUTING VARIANCE/STD DEV/EXCESS RETURN OF HOLDING VECTOR C"""
+# Compute the variance using 1/e^TV^-1e as C is characteristic portfolio of e
+weekly_var_c = np.dot(np.dot(h_C.T, V), h_C)
+annual_var_c = np.dot(np.dot(h_C.T, V), h_C) * np.sqrt(52)
+weekly_std_c = np.sqrt(weekly_var_c)
+annual_std_c = np.sqrt(weekly_var_c) * np.sqrt(52)
 
 """PRINT STATEMENTS"""
 # Printing the Excess Returns Dataframe
@@ -91,5 +97,11 @@ title = "Holdings Vector of Portfolio C with Given Stocks"
 h_C_df.title = title
 print(f"\n{title}\n")
 print(h_C_df)
+
+print(f"\nWeekly Variance of Holding Vector C is: {weekly_var_c}")
+print(f"\nAnnualized Variance of Holding Vector C is: {annual_var_c}")
+print(f"\nWeekly Standard Deviation of Holding Vector C is: {weekly_std_c}")
+print(f"\nAnnualized Standard Deviation of Holding Vector C is: {annual_std_c}")
+
 
 
