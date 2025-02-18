@@ -1,11 +1,38 @@
 import numpy as np
 import pandas as pd
 
+def dataframe_to_table(df, max_cols=10, **kwargs):
+    num_cols = len(df.columns)
+
+    if num_cols > max_cols:
+        half_cols = max_cols // 2
+        first_part = df.iloc[:, :half_cols]
+        last_part = df.iloc[:, -half_cols:]
+
+        # Create a DataFrame with one column of '...' that matches the number of rows
+        ellipsis_df = pd.DataFrame(["..."] * first_part.shape[0], columns=["..."])
+
+        # Concatenate first part, ellipsis, and last part
+        df_subset = pd.concat([first_part, ellipsis_df, last_part], axis=1)
+
+        print(
+            f"DataFrame has {num_cols} columns, displaying the first {half_cols} and last {half_cols} columns with '...' in between.")
+    else:
+        df_subset = df
+
+    latex_table = df_subset.to_latex(**kwargs)
+    return latex_table
+
 """Cleaning and Setting Global Variables to use throughout"""
-stocks = pd.read_csv('/Users/dannymazus/Documents/GitHub/Financial-Engineering/mini_project/stock_prices.csv')
+stocks = pd.read_csv('stock_prices.csv')
 stocks = stocks.T
 tickers = [heading.split()[0] for heading in stocks.index[1:]]
+dates = stocks.iloc[0,1:].to_list()
 print(stocks)
+print(dates)
+stocks_table = dataframe_to_table(stocks, max_cols=6)
+print(stocks_table)
+
 
 # Transform into a matrix for computation purposes
 price_matrix = stocks.to_numpy()
@@ -69,6 +96,14 @@ weekly_var_c = np.dot(np.dot(h_C.T, V), h_C)
 annual_var_c = np.dot(np.dot(h_C.T, V), h_C) * np.sqrt(52)
 weekly_std_c = np.sqrt(weekly_var_c)
 annual_std_c = np.sqrt(weekly_var_c) * np.sqrt(52)
+f_C = np.dot(h_C.T, excess_return_matrix)
+avg_f_C = np.mean(f_C)
+avg_annual_f_C = avg_f_C * 52
+annual_f_C = f_C * 52
+
+"""COMPUTE VARIANCE OF INDIVIDUAL STOCKS"""
+variances = np.diagonal(V)
+annual_variances = variances * 52
 
 """PRINT STATEMENTS"""
 # Printing the Excess Returns Dataframe
@@ -91,6 +126,7 @@ covariance_df.title = title
 print(f"\n{title}\n")
 print(covariance_df)
 
+
 # Convert into dataframe for viewing purposes
 h_C_df = pd.DataFrame(h_C, index = tickers, columns = ['Holdings Percentage of each Stock'])
 title = "Holdings Vector of Portfolio C with Given Stocks"
@@ -98,10 +134,27 @@ h_C_df.title = title
 print(f"\n{title}\n")
 print(h_C_df)
 
+# Variances as dataframes
+variances_df = pd.DataFrame(variances, index=tickers, columns=['Weekly Variance for Each Stock'])
+annual_variances_df = pd.DataFrame(annual_variances, index=tickers, columns=['Annualized Variance for Each Stock'])
+
+# Convert Expected excess returns into dataframe
+f_C_df = pd.DataFrame(f_C, index = dates, columns = ['Expected Excess Returns Each Week'])
+print(dataframe_to_table(f_C_df, max_cols=6, caption="Expected Excess Returns for Each Week in the Portfolio"))
+annual_f_C_df = pd.DataFrame(annual_f_C, index = dates, columns = ['Annualized Expected Returns of Portfolio C for Each Week'])
+
 print(f"\nWeekly Variance of Holding Vector C is: {weekly_var_c}")
 print(f"\nAnnualized Variance of Holding Vector C is: {annual_var_c}")
 print(f"\nWeekly Standard Deviation of Holding Vector C is: {weekly_std_c}")
 print(f"\nAnnualized Standard Deviation of Holding Vector C is: {annual_std_c}")
+print(f"\nAverage Weekly Expected Excess Return for Portfolio C is: {avg_f_C}")
+print(f"\nAnnualized Average Weekly Expected Excess Return for Portfolio C is: {avg_annual_f_C}")
+print(f"\n{f_C_df}")
+print(f"\n{annual_f_C_df}")
+print(f"\n{variances_df}")
+print(f"\n{annual_variances_df}")
+
+
 
 
 
