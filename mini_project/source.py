@@ -29,9 +29,25 @@ stocks = stocks.T
 tickers = [heading.split()[0] for heading in stocks.index[1:]]
 dates = stocks.iloc[0,1:].to_list()
 print(stocks)
-print(dates)
-stocks_table = dataframe_to_table(stocks, max_cols=6)
-print(stocks_table)
+
+"""Cleaning and Setting Risk Free Rate"""
+rates = pd.read_csv('daily_rates.csv')
+rates = rates.T
+rates = rates.iloc[:, ::-1]
+rates.columns = range(len(rates.columns))
+rates = rates.iloc[:, 1:]
+rates.columns = range(len(rates.columns))
+rates.iloc[1] = rates.iloc[1].astype(float)
+print(rates)
+
+for j in range(len(rates.columns)):
+    rates.iloc[1, j] = (1 + ((rates.iloc[1,j] / 100) / 365)) ** (1/4) - 1
+
+print(rates)
+
+rates_matrix = rates.to_numpy()
+rates_matrix = np.delete(rates_matrix, 0, 0)
+print(rates_matrix)
 
 
 # Transform into a matrix for computation purposes
