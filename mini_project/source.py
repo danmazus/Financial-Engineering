@@ -35,19 +35,20 @@ rates = pd.read_csv('daily_rates.csv')
 rates = rates.T
 rates = rates.iloc[:, ::-1]
 rates.columns = range(len(rates.columns))
-rates = rates.iloc[:, 1:]
-rates.columns = range(len(rates.columns))
 rates.iloc[1] = rates.iloc[1].astype(float)
 print(rates)
 
+# Conversion of rate to weekly
 for j in range(len(rates.columns)):
-    rates.iloc[1, j] = (1 + ((rates.iloc[1,j] / 100) / 365)) ** (1/4) - 1
+    rates.iloc[1, j] = (1 + ((rates.iloc[1,j] / 100) / 365) * 28) ** (1/4) - 1
 
 print(rates)
 
+
+
+# Convert Rates to a matrix
 rates_matrix = rates.to_numpy()
 rates_matrix = np.delete(rates_matrix, 0, 0)
-print(rates_matrix)
 
 
 # Transform into a matrix for computation purposes
@@ -68,7 +69,7 @@ rows, cols = price_matrix.shape
 # Computing the weekly excess returns and storing it in the excess return matrix
 for i in range(rows):
     for j in range(1, cols):
-        excess_return_matrix[i,j] = (price_matrix[i,j] / price_matrix[i,j-1]) - 1
+        excess_return_matrix[i,j] = (price_matrix[i,j] / price_matrix[i,j-1]) - 1 - rates_matrix[0,j]
 
 # Deleting the first column as this has no excess returns (reference column)
 excess_return_matrix = np.delete(excess_return_matrix, 0, 1)
@@ -128,6 +129,7 @@ excess_return_df.title = title
 print(f"\n{title}\n")
 print(excess_return_df)
 
+
 # Printing the De-Meaned Matrix in a Dataframe
 de_mean_df = pd.DataFrame(Y, index=tickers)
 title = "De-Meaned Matrix of Excess Returns"
@@ -149,6 +151,7 @@ title = "Holdings Vector of Portfolio C with Given Stocks"
 h_C_df.title = title
 print(f"\n{title}\n")
 print(h_C_df)
+print(dataframe_to_table(h_C_df, max_cols = 6))
 
 # Variances as dataframes
 variances_df = pd.DataFrame(variances, index=tickers, columns=['Weekly Variance for Each Stock'])
