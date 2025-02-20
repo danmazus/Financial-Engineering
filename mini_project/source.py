@@ -40,9 +40,10 @@ print(rates)
 
 # Conversion of rate to weekly
 for j in range(len(rates.columns)):
-    rates.iloc[1, j] = (1 + ((rates.iloc[1,j] / 100) / 365) * 28) ** (1/4) - 1
+    rates.iloc[1, j] = (1 + ((rates.iloc[1,j] / 100) / 365)) ** (365/52) - 1
 
 print(rates)
+print(dataframe_to_table(rates, max_cols=10))
 
 
 
@@ -110,7 +111,7 @@ h_C = numer/denom
 """COMPUTING VARIANCE/STD DEV/EXCESS RETURN OF HOLDING VECTOR C"""
 # Compute the variance using 1/e^TV^-1e as C is characteristic portfolio of e
 weekly_var_c = np.dot(np.dot(h_C.T, V), h_C)
-annual_var_c = np.dot(np.dot(h_C.T, V), h_C) * np.sqrt(52)
+annual_var_c = np.dot(np.dot(h_C.T, V), h_C) * 52
 weekly_std_c = np.sqrt(weekly_var_c)
 annual_std_c = np.sqrt(weekly_var_c) * np.sqrt(52)
 f_C = np.dot(h_C.T, excess_return_matrix)
