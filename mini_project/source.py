@@ -114,7 +114,8 @@ weekly_var_c = np.dot(np.dot(h_C.T, V), h_C)
 annual_var_c = np.dot(np.dot(h_C.T, V), h_C) * 52
 weekly_std_c = np.sqrt(weekly_var_c)
 annual_std_c = np.sqrt(weekly_var_c) * np.sqrt(52)
-f_C = np.dot(h_C.T, excess_return_matrix)
+f_C_mean = np.mean(excess_return_matrix, axis=1)
+f_C = np.dot(h_C.T, f_C_mean)
 avg_f_C = np.mean(f_C)
 avg_annual_f_C = avg_f_C * 52
 annual_f_C = f_C * 52
@@ -173,6 +174,8 @@ print(f"\n{f_C_df}")
 print(f"\n{annual_f_C_df}")
 print(f"\n{variances_df}")
 print(f"\n{annual_variances_df}")
+print(f_C_mean)
+print(np.dot(h_C.T, f_C_mean.T))
 
 
 
