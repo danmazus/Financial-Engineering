@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import requests
 import yfinance as yf
-import time
+import matplotlib.pyplot as plt
 import os
 
 file_path = '/Users/dannymazus/Documents/GitHub/Financial-Engineering/mini_project_part_2/data/sp500_market_caps.csv'
@@ -40,7 +40,7 @@ else:
     except Exception as e:
         print(f'Error retrieving data from S&P 500 data: {e}')
 
-
+    sp_500_table['Symbol'] = sp_500_table['Symbol'].str.replace('.', '-', regex=False)
     tickers = sp_500_table['Symbol'].tolist()
 
 
@@ -237,12 +237,24 @@ annual_stock_variances = weekly_stock_variances * 52
 
 h_C_df = pd.DataFrame(h_C, index=close_prices_df.index, columns=['Percent Holdings'])
 
+pd.set_option('display.max_rows', None)
+
 print(f'\nThe Holding Vector C is: \n{h_C_df}')
 print(f"\nWeekly Variance of Holding Vector C is: {weekly_var_C}")
 print(f"\nAnnualized Variance of Holding Vector C is: {annual_var_C}")
 print(f"\nWeekly Standard Deviation of Holding Vector C is: {weekly_std_dev}")
 print(f"\nAnnualized Standard Deviation of Holding Vector C is: {annual_std_dev}")
 print(f"\nWeekly Expected Excess Return for Portfolio C is: {exp_exc_returns}")
+
+top_n_assets = 10
+
+top_holdings_df = h_C_df.sort_values(by='Percent Holdings', ascending=False).head(top_n_assets)
+
+plt.figure(figsize = (8, 8))
+plt.pie(top_holdings_df['Percent Holdings'], labels=top_holdings_df.index, autopct='%1.1f%%', startangle=90)
+plt.title(f'Top {top_n_assets} Asset Holdings')
+plt.show()
+
 
 
 
