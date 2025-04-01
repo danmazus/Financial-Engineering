@@ -3,10 +3,44 @@ import pandas as pd
 import requests
 import yfinance as yf
 import matplotlib.pyplot as plt
+import seaborn as sns
 import os
 
-file_path = '/Users/dannymazus/Documents/GitHub/Financial-Engineering/mini_project_part_2/data/sp500_market_caps.csv'
-save_path = "/Users/dannymazus/Documents/GitHub/Financial-Engineering/mini_project_part_2/data/top_400_weekly_data.csv"
+def dataframe_to_table(df, max_cols=10, max_rows=10, **kwargs):
+    num_cols = len(df.columns)
+    num_rows = len(df)
+
+    # Handling columns
+    if num_cols > max_cols:
+        half_cols = max_cols // 2
+        first_part_cols = df.iloc[:, :half_cols]
+        last_part_cols = df.iloc[:, -half_cols:]
+
+        # Create a DataFrame with a single row of \cdots for columns
+        ellipsis_col_df = pd.DataFrame({"$\cdots$": ["$\\cdots$"] * len(df)}, index=df.index)
+
+        df = pd.concat([first_part_cols, ellipsis_col_df, last_part_cols], axis=1)
+
+    # Handling rows
+    if num_rows > max_rows:
+        half_rows = max_rows // 2
+        first_part_rows = df.iloc[:half_rows, :]
+        last_part_rows = df.iloc[-half_rows:, :]
+
+        # Create a DataFrame with one row of \vdots
+        ellipsis_row_df = pd.DataFrame({col: ["$\\vdots$"] for col in df.columns})
+
+        df = pd.concat([first_part_rows, ellipsis_row_df, last_part_rows], axis=0)
+
+    latex_table = df.to_latex(escape=False, **kwargs)  # escape=False to allow LaTeX symbols
+    return latex_table
+
+file_path = \
+    ('/Users/dannymazus/Documents/GitHub/Financial-Engineering/'
+     'mini_project_part_2/data/sp500_market_caps.csv')
+save_path = \
+    ("/Users/dannymazus/Documents/GitHub/Financial-Engineering/"
+     "mini_project_part_2/data/top_400_weekly_data.csv")
 
 
 
@@ -140,10 +174,13 @@ excess_return_matrix[:,0] = 0
 # Getting the number of rows and columns to loop over to fill in the excess return matrix
 rows_close_price, cols_close_price = close_price_matrix.shape
 
+avg_risk_free_rate = 0.0427
+avg_weekly_rf_rate = (1 + avg_risk_free_rate) ** (1 / 52) - 1
+
 # Filling in our excess return matrix
 for i in range(rows_close_price):
     for j in range(1, cols_close_price):
-        excess_return_matrix[i,j] = (close_price_matrix[i,j] / close_price_matrix[i,j-1]) - 1
+        excess_return_matrix[i,j] = (close_price_matrix[i,j] / close_price_matrix[i,j-1]) - 1 - avg_weekly_rf_rate
 
 # Deleting the first column as this was the reference column
 excess_return_matrix = np.delete(excess_return_matrix, 0, 1)
@@ -179,7 +216,7 @@ S = np.dot(demeaned_returns, demeaned_returns.T) / n
 # ================= Computing the Single Factor Covariance Matrix, Sigma =========================
 
 # Computing the Eigenvalues and Eigenvectors
-S_eigenvalues, S_eigenvectors = np.linalg.eig(S)
+S_eigenvalues, S_eigenvectors = np.linalg.eigh(S)
 S_eigenvalues, S_eigenvectors = S_eigenvalues.real, S_eigenvectors.real
 
 # Getting the leading eigenvalue and corresponding eigenvector
@@ -224,11 +261,12 @@ annual_var_C = weekly_var_C * 52
 weekly_std_dev = np.sqrt(weekly_var_C)
 
 # Compute Annual Standard Deviation
-annual_std_dev = weekly_std_dev * 52
+annual_std_dev = weekly_std_dev * np.sqrt(52)
 
 # Compute Expected excess returns f_C
 exp_exc_returns_mean = np.mean(excess_return_matrix, axis=1)
-exp_exc_returns = np.dot(h_C.T, exp_exc_returns_mean)
+exp_exc_returns = np.inner(h_C.T, exp_exc_returns_mean)
+ann_exp_exc_returns = (1 + exp_exc_returns) ** 52 - 1
 
 # Compute Variance of each stock
 weekly_stock_variances = np.diag(S)
@@ -239,24 +277,108 @@ h_C_df = pd.DataFrame(h_C, index=close_prices_df.index, columns=['Percent Holdin
 
 pd.set_option('display.max_rows', None)
 
+# ================== Print Statements ========================
+
 print(f'\nThe Holding Vector C is: \n{h_C_df}')
 print(f"\nWeekly Variance of Holding Vector C is: {weekly_var_C}")
 print(f"\nAnnualized Variance of Holding Vector C is: {annual_var_C}")
 print(f"\nWeekly Standard Deviation of Holding Vector C is: {weekly_std_dev}")
 print(f"\nAnnualized Standard Deviation of Holding Vector C is: {annual_std_dev}")
 print(f"\nWeekly Expected Excess Return for Portfolio C is: {exp_exc_returns}")
+print(f"\nAnnual Expected Excess Return for Portfolio C is: {ann_exp_exc_returns}")
 
+# Getting the top n assets of our holdings
 top_n_assets = 10
+top_holdings_df = h_C_df.loc[h_C_df['Percent Holdings'].abs().sort_values(ascending=False).index].head(top_n_assets)
 
-top_holdings_df = h_C_df.sort_values(by='Percent Holdings', ascending=False).head(top_n_assets)
+print(f'\nThe top {top_n_assets} Assets Holdings is: \n{top_holdings_df}')
 
-plt.figure(figsize = (8, 8))
-plt.pie(top_holdings_df['Percent Holdings'], labels=top_holdings_df.index, autopct='%1.1f%%', startangle=90)
-plt.title(f'Top {top_n_assets} Asset Holdings')
+# ============================== Plotting =======================================
+# Barchart of Percentage Holdings
+h_C_df_sort = h_C_df.sort_values(by=['Percent Holdings'], ascending=False)
+h_C_df_sort = h_C_df_sort.reset_index()
+plt.figure(figsize=(10, 8))
+sns.barplot(x=h_C_df_sort['Symbol'], y=h_C_df_sort['Percent Holdings'], palette='viridis')
+tick_positions = np.arange(0, len(h_C_df_sort['Percent Holdings']), 10)
+plt.xticks(tick_positions, h_C_df_sort['Symbol'].iloc[tick_positions], rotation=90)
+plt.xlabel('Symbol')
+plt.ylabel('Percent Holdings')
+plt.title('Portfolio Holdings Distribution')
+plt.show()
+
+# Histogram for distribution of percentage holdings
+plt.figure(figsize=(10, 8))
+sns.histplot(x=h_C_df_sort['Percent Holdings'], bins=50, kde=True, color='blue')
+plt.xlabel('Percent Holdings')
+plt.title('Histogram of Portfolio Holdings Distribution')
+plt.show()
+
+# Barchart of Stock Variances
+plt.figure(figsize=(10, 8))
+h_C_df = h_C_df.reset_index()
+sns.barplot(x=h_C_df['Symbol'], y=annual_stock_variances, palette='viridis')
+plt.plot(annual_var_C, color='black')
+plt.xticks(tick_positions, h_C_df['Symbol'].iloc[tick_positions], rotation=90)
+plt.xlabel('Symbol')
+plt.ylabel('Annualized Stock Variance')
+plt.title('Annualized Stock Variances for Each Stock')
+plt.show()
+
+# Barchart of Expected Excess Returns for Each Stock
+plt.figure(figsize=(10, 8))
+expected_mean_df = pd.DataFrame(exp_exc_returns_mean, index=close_prices_df.index, columns=['Expected Excess Returns'])
+expected_mean_df_sort = expected_mean_df.sort_values(by=['Expected Excess Returns'], ascending=False)
+expected_mean_df_sort = expected_mean_df_sort.reset_index()
+sns.barplot(x=expected_mean_df_sort['Symbol'], y=expected_mean_df_sort['Expected Excess Returns'], palette='viridis')
+plt.xticks(tick_positions, expected_mean_df_sort['Symbol'].iloc[tick_positions], rotation=90)
+plt.xlabel('Symbol')
+plt.ylabel('Expected Excess Returns')
+plt.title('Expected Excess Returns for Each Stock')
+plt.show()
+
+# Distribution Histogram of Expected Excess Returns
+plt.figure(figsize=(10, 8))
+sns.histplot(x=expected_mean_df_sort['Expected Excess Returns'], bins=50, kde=True, color='red')
+plt.xlabel('Expected Excess Returns')
+plt.title('Distribution of Expected Excess Returns for Each Stock')
+plt.show()
+
+# Pie Chart of Long and Short Positions
+long_positions = np.sum(h_C[h_C > 0])
+short_positions = np.sum(np.abs(h_C[h_C < 0]))
+print(long_positions, short_positions)
+size = [long_positions, short_positions]
+plt.figure(figsize=(10, 8))
+wedges, texts, autotexts = plt.pie(size, labels=['Long Positions', 'Short Positions'], autopct='%1.1f%%', explode=(0.01, 0.07), shadow=True, startangle=90, colors=('grey', 'orange'), wedgeprops={'edgecolor': 'k'}, textprops={'color': 'k'})
+plt.title('Portfolio Allocation of Long and Short Positions')
+plt.legend(wedges, ['Long', 'Short'],
+           title='Positions', loc='best')
+plt.setp(autotexts, size=12, weight='bold')
 plt.show()
 
 
+# Wealth over-time for our Portfolio
+initial_wealth = 1000
+portfolio_returns = np.dot(h_C.T, excess_return_matrix)
+wealth_over_time = initial_wealth * (1 + portfolio_returns).cumprod()
+
+# Wealth over-time for S&P 500
+spx = yf.Ticker('^GSPC')
+spx_data = spx.history(start='2024-03-31', end='2024-10-01')
+spx_prices = spx_data['Close']
+spx_prices.index = pd.to_datetime(spx_prices.index).date
+spx_prices = spx_prices.reindex(close_prices_df.columns, method='ffill')
+spx_returns = spx_prices.pct_change().dropna()
+wealth_s_p = initial_wealth * (1 + spx_returns).cumprod()
 
 
-
-
+# Wealth over-time for our portfolio vs the S&P 500
+plt.figure(figsize=(10, 8))
+plt.plot(excess_return_df.columns,wealth_over_time, label='Wealth Over Time', color='b')
+plt.plot(wealth_s_p.index, wealth_s_p, label='S&P 500 Returns Given Initial Wealth', color='r')
+plt.axhline(y=initial_wealth, color='k', linestyle='--', label=f'Initial Wealth: {initial_wealth}')
+plt.xlabel('Date')
+plt.ylabel('Wealth Over Time')
+plt.legend()
+plt.grid(True)
+plt.show()
