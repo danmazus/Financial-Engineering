@@ -231,6 +231,21 @@ l_2 = (trace_S - leading_eigenvalue) / (n - 1)
 # Computing sigma
 sigma = (leading_eigenvalue - l_2) * np.dot(leading_eigenvector, leading_eigenvector.T) + (n/p) * l_2 * np.eye(p)
 
+# ================ Computing the James-Stein Estimator ========================
+m_h = np.average(leading_eigenvector)
+
+e = np.ones((p, 1))
+
+s_2 = (1 / p) * np.sum(((np.sqrt(leading_eigenvalue) * leading_eigenvector) - (np.sqrt(leading_eigenvalue) * m_h)) ** 2)
+
+nu_2 = l_2 * (1 / p)
+
+c_jse = 1 - (nu_2 / s_2)
+
+h_jse = m_h * e + c_jse * (leading_eigenvector - m_h * e)
+
+V = (leading_eigenvector - l_2) * (np.dot(h_jse, h_jse.T) / np.dot(h_jse.T, h_jse)) + (n / p) * l_2 * np.eye(p)
+
 # ================== Holdings Vector Calculation ====================
 
 # Compute the Inverse of sigma
@@ -346,7 +361,6 @@ plt.show()
 # Pie Chart of Long and Short Positions
 long_positions = np.sum(h_C[h_C > 0])
 short_positions = np.sum(np.abs(h_C[h_C < 0]))
-print(long_positions, short_positions)
 size = [long_positions, short_positions]
 plt.figure(figsize=(10, 8))
 wedges, texts, autotexts = plt.pie(size, labels=['Long Positions', 'Short Positions'], autopct='%1.1f%%', explode=(0.01, 0.07), shadow=True, startangle=90, colors=('grey', 'orange'), wedgeprops={'edgecolor': 'k'}, textprops={'color': 'k'})
